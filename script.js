@@ -1,34 +1,81 @@
-const boardElement = document.getElementById("chessboard");
-const game = new Chess();
+const board = document.getElementById('board');
+const cells = document.querySelectorAll('.cell');
+const statusText = document.getElementById('status');
+const resetButton = document.getElementById('reset');
 
-const board = Chessboard(boardElement, {
-    draggable: true,
-    position: "start",
-    onDragStart: (source, piece) => {
-        if (game.game_over()) return false; // Game over hone par move na ho
-        if ((game.turn() === "w" && piece.search(/^b/) !== -1) || 
-            (game.turn() === "b" && piece.search(/^w/) !== -1)) {
-            return false; // Sirf current player move kar sake
-        }
-    },
-    onDrop: (source, target) => {
-        const move = game.move({
-            from: source,
-            to: target,
-            promotion: "q" // Pawn ke promotion ke liye
-        });
+let currentPlayer = 'X';
+let gameState = ['', '', '', '', '', '', '', '', ''];
+let gameActive = true;
 
-        if (move === null) return "snapback"; // Agar move invalid ho to wapas le jao
+const winningConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
+];
 
-        updateBoard();
-    },
-    onSnapEnd: () => {
-        board.position(game.fen()); // Move hone ke baad board update kare
+function handleCellClick(event) {
+    const clickedCell = event.target;
+    const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+
+    if (gameState[clickedCellIndex] !== '' || !gameActive) {
+        return;
     }
-});
 
-function updateBoard() {
-    board.position(game.fen()); // Board ko current position pr update kare
+    gameState[clickedCellIndex] = currentPlayer;
+    clickedCell.textContent = currentPlayer;
+
+    checkForWinner();
 }
 
-updateBoard();
+function checkForWinner() {
+    let roundWon = false;
+
+    for (let i = 0; i < winningConditions.length; i++) {
+        const winCondition = winningConditions[i];
+        const a = gameState[winCondition[0]];
+        const b = gameState[winCondition[1]];
+        const c = gameState[winCondition[2]];
+
+        if (a === '' || b === '' || c === '') {
+            continue;
+        }
+
+        if (a === b && b === c) {
+            roundWon = true;
+            break;
+        }
+    }
+
+    if (roundWon) {
+        statusText.textContent = `Player ${currentPlayer} wins!`;
+        gameActive = false;
+        return;
+    }
+
+    if (!gameState.includes('')) {
+        statusText.textContent = 'Draw!';
+        gameActive = false;
+        return;
+    }
+
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    statusText.textContent = `It's ${currentPlayer}'s turn`;
+}
+
+function resetGame() {
+    gameState = ['', '', '', '', '', '', '', '', ''];
+    gameActive = true;
+    currentPlayer = 'X';
+    statusText.textContent = `It's ${currentPlayer}'s turn`;
+    cells.forEach(cell => cell.textContent = '');
+}
+
+cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+resetButton.addEventListener('click', resetGame);
+
+statusText.textContent = `It's ${currentPlayer}'s turn`;
